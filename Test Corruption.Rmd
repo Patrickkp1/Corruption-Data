@@ -1,9 +1,9 @@
 ---
-title: "The Effects of Corruption on Monetary Wealth"
+title: "The Effects of Corruption on Monetary Wealth [Code, Output, Notes]"
 author: "Patrick Poleshuk / Katherine Sprowls / Justin Kerner / Riley McCoy"
-date: "11/16/2020"
+date: "12/06/2020"
 output: 
-  pdf_document:
+  pdf_document: 
     latex_engine: xelatex
 ---
 
@@ -21,13 +21,6 @@ knitr::knit_hooks$set(error = function(x, options) {
 ```
 
 ```{r setup/analysis, include=TRUE, message=FALSE, warning=FALSE}
-# The goal of the below research is to point out that corruption is deleterious to the monetary 
-# welfare of a country's citizens. We will examine this through interpreting statistical trends of
-# the misallocation of scarce resources with alternative uses, as it pertains to the distribution of
-# a country's GDP into its health and education sectors. Overall we find that corrupt regimes are
-# more likely to allocate a lower amount of resources, relative to their GDP, into these sectors,
-# and suffer from weaker labor productivity as a result. As we see, when labor is less productive
-# GDP per capita of a country falls, and, on a macroeconomic scale, the entire economy suffers. 
 knitr::opts_chunk$set(echo = TRUE)
 library(tinytex)
 library(ggplot2)
@@ -38,8 +31,6 @@ library(dplyr)
 library(plm)
 library(tidyr)
 library(car)
-library(OECD)
-
 
 file = "/Users/patrickpoleshuk/Desktop/archive (1)/history.csv"
 df_hist = read.csv(file, header = F, sep = ",")
@@ -52,12 +43,13 @@ df_hist <- df_hist %>% slice(-c(1))
 
 df_literacy = WDI(country = "all", indicator = "SE.ADT.LITR.ZS", start = "2012",
                    end = "2016")
-# Measures the literacy rate of the % of people, within a given country, aged 15 and above. 
+# Measures the literacy rate of the % of people, within a given country, 
+# aged 15 and above. 
 
 df_primary_completion = WDI(country = "all", indicator = "SE.PRM.CMPT.ZS",
                  start = "2012", end = "2016")
-# Measures the primary school completion rate, as a % of the relevant age group population, within 
-# a country. 
+# Measures the primary school completion rate, as a % of the relevant age 
+# group population, within a country. 
 
 df_allocation = WDI(country = "all", indicator = "SE.XPD.TOTL.GD.ZS", start = "2012",
                     end = "2016")
@@ -66,7 +58,8 @@ df_allocation = WDI(country = "all", indicator = "SE.XPD.TOTL.GD.ZS", start = "2
 df = merge(df_literacy, df_primary_completion)
 df = merge(df_allocation, df)
 
-names(df) <- c("code", "Country", "Year", "%_of_GDP_To_Education",  "Literacy_Rate", "%_Primary_Complete")
+names(df) <- c("code", "Country", "Year", "%_of_GDP_To_Education",  "Literacy_Rate",
+               "%_Primary_Complete")
 df = subset(df, select = -c(code))
 
 
@@ -97,7 +90,8 @@ df_complete = (merge(df_hist, df, by=c("Country", "Year")))
 
 NROW(df_complete)
 View(df_complete)
-names(df_complete) = c("Country", "Year", "Corruption_Index", "%_of_GDP_To_Education", "Literacy_Rate", "%_Primary_Complete")
+names(df_complete) = c("Country", "Year", "Corruption_Index", "%_of_GDP_To_Education",
+                       "Literacy_Rate", "%_Primary_Complete")
 
 df2 = subset(df2, select = -c(iso2c))
 names(df2) <- c("Country", "GDP", "Year")
@@ -115,70 +109,60 @@ reg <- function(y, x){
   return(results)
 }
 
-# * I'm just wrapping the regression command into a function so it resembles more of something that 
-# you guys have seen in Stata. When you see "glm" or "plm" later on it's just a regression command.
+# * I'm wrapping the regression command into a function so it resembles more of something that is 
+# seen in Stata. When you see "glm" or "plm" later on it's just a regression command.
 
 cor.test(lnGDP, Corruption)
 # A less corrupt country is moderately, postively correlated with a higher GDP at .4046. 
-# Not surprising, as there are a myriad of factors that impact GDP. 
+library(outreg)
 summary(reg(lnGDP, Corruption))
-# A 1 unit increase in the corruption index will lead to a 041765% increase in GDP. S.S. at 1% signficant level. 
-
+reg(lnGDP, Corruption)
+coef(reg(lnGDP, Corruption))[2] * 100
+# A 1 unit increase in the corruption index will lead to a 4.1765% increase in GDP. 
+# Statistically Significant (S.S) at the 1% signficance level. 
 summary(reg(Education_Allocation, Corruption))
-# Remember! In this data frame, the higher the Corruption index value the least corrupt 
-# the country is. That's why the coefficent of effect is positive. Essentially, 
-# For every 1 index point increase in Corruption, there will be a .03752% increase 
-# in education allocated as a % of a country's total GDP. 
+m <- reg(Education_Allocation, Corruption)
+m
+library(outreg)
+outreg(m)
+coef(reg(Education_Allocation, Corruption))[2]
+# The higher the corruption index value, the least corrupt the country is. That's why the coefficent 
+# of effect is positive. For every 1 index point increase in Corruption, there will be
+# a .03752 increase in education allocated as a % of a country's total GDP. 
 summary(reg(Lit, Corruption))
-# A 1 unit increase in the corruption index is predicted to raise literacy rates in that country 
-# by an estimated .3595%. 
-m = glm(Lit ~ Corruption + Education_Allocation)
-print(m)
-# A quick multiple linear regression reveals these findings which you can interpret. 
-vif(m)
-# If the Variance inflation factor is even close to 1, there are no issues with multicollinearity. 
-# So we're fine. 
-summary(m)
-# All variables are signficant at the 1% level. And it will go without saying later on, 
-# that all our findings will be S.S. at at least the 5% level unless I say so. 
+# A 1 unit increase in the corruption index is predicted to raise literacy rates in a
+# country by an estimated .3595%. It should be noted that all our findings will be
+# S.S. at the 1% level if not stated. 
 reg(Completion, Corruption)
 # A 1 unit increase in the corruption index will raise the primary school completion rate by .3432%. 
-model = glm(Lit ~ Corruption + Education_Allocation + Completion)
-summary(model)
-# In this multiple linear regression, we can see that all of these variables 
-# have a great impact on literacy rates. 
-# Problem is that this is the only model with a weak S.S. of the variables. 
-vif(model)
-# Doubt it's an issue with multicollinearity, probably just a sample size error. 
 
 cor.test(Education_Allocation, Corruption)
 # We found a correlation coefficent of .4966988. This signals a moderate linear relationship between
 # corruption in a country and the % of GDP Allocated towards Education. 
+length(which(!is.na(Education_Allocation & Corruption)))
+# N = 454
 freqData <- as.data.frame(table(Corruption, Education_Allocation))
 names(freqData) <- c("Corruption", "Education", "Frequency")
 freqData$Corruption <- as.numeric(as.character(freqData$Corruption))
 freqData$Education <- as.numeric(as.character(freqData$Education))
 g <- ggplot(filter(freqData, Frequency > 0), aes(x = Corruption, y = Education))
-g <- g  + scale_size(range = c(1, 8), guide = "none" )
+g <- g + scale_size(range = c(1, 8), guide = "none" )
 g <- g + geom_point(color="grey50", aes(size = Frequency+20))
 g <- g + geom_point(aes(color=Frequency, size = Frequency))
 g <- g + scale_color_gradient(low = "lightblue", high="white") +
-  ggtitle("Illustrated Regression of Corruption Index on GDP") +
+  ggtitle("Illustrated Regression of Corruption Index on Education Allocation") +
   labs(x = "Corruption Index",
-       y = "Education Allocation")
+       y = "Education Allocation (% of GDP)",
+       caption = "Data Source: World Bank / Transparency International",
+       subtitle = "N = 454")
 Model_new <- glm(Education_Allocation ~ Corruption)
-g <- g + geom_abline(intercept = coef(Model_new)[1], slope = coef(Model_new)[2], size = 3, color = "blue")
+g <- g + geom_abline(intercept = coef(Model_new)[1], slope = coef(Model_new)[2], 
+                     size = 3, color = "blue")
 g
-
-# Ignore the confusing syntax, this is just a nice graph of how the corruption index of a country
+# Ignore the confusing syntax, this is just a graph of how the corruption index of a country
 # predicts a higher % of GDP allocted to education. You'll see that the index of % allocated to
 # education only goes up to about 10, that's because no country is willing to allocate more than 
 # 10% of their respective GDP value, in resources, to their education sector. 
-
-plot(Corruption, Education_Allocation, main = "Education Allocation Alongside Corruption Index Plot",
-     xlab = "Corruption Index", ylab = "Education Allocation as a % of GDP")
-abline(glm(Education_Allocation ~ Corruption), col = "Blue")
-# This is watered down, simple graph of the same findings. 
 
 df_GDP_capita = WDI(country = "all", indicator = "NY.GDP.PCAP.CD", 
                     start = "2012", end = "2019")
@@ -197,46 +181,33 @@ df_complete = merge(df_complete, df_GDP_capita, by = c("Country", "Year"))
 GDP_capita = df_complete$GDP_per_capita
 lnGDP_capita = log(df_complete$GDP_per_capita)
 
-probit <- ggplot(df_complete, aes(x=GDP_capita, y=CorruptionCode)) + geom_point() +
-  stat_smooth(method = "glm", method.args = list(family = "binomial" (link = "probit")), se=TRUE)
-probit + labs(x="GDP per capita", y="Corruption (0 - Most, 1 - Least)", 
-          title = "Probit Regression of Corruption on GDP per capita")
-
-# Ok here is a probit (Non-linear regression) model of GDP per capita, depending on if a 
-# country falls below or above the median corruption index value of 38. I will refine this in 
-# the next line of code. 
-
+length(which(!is.na(lnGDP_capita & CorruptionCode)))
+# N = 745
 probit <- ggplot(df_complete, aes(x=lnGDP_capita, y=CorruptionCode)) + geom_point() +
   stat_smooth(method = "glm", method.args = list(family = "binomial" (link = "probit")), se=TRUE)
-probit + labs(x="Log valuee of GDP per capita", y="Corruption (0 - Most, 1 - Least)", 
-          title = "Probit Regression of Corruption on log value of GDP per capita")
-
-
-# Here I just changed the GDD_per_capita value into a log transformed variable, the "S" shape 
+probit + labs(x="Ln(GDP Per Capita)", y="Corruption (0 - Most, 1 - Least)", 
+          title = "Probit Regression of Corruption on Log Value of GDP Per Capita", 
+          caption = "Data Source: World Bank / Transparency International",
+          subtitle = "N = 719 (Removed 26 Non-Finite Values)")
+# Here I just changed the GDP_per_capita value into a log transformed variable, the "S" shape 
 # is what we desire from the model. It is clear that more corrupt regimes are characterized by
 # weaker GDP per capita values. 
 
 summary(glm(GDP_capita ~ CorruptionCode))
-# A country with corruption values below the median will tend to have a GDP per capita 
+# A country with corruption values below the median will tend to have a GDP per capita
 # $20,732.8 less than countries who have a corruption value above the median. 
-df_health = WDI(country = "all", indicator = "SH.XPD.CHEX.GD.ZS", start = 1960, 
-                end = 2019)
-
-df_health = subset(df_health, select = -c(iso2c))
-names(df_health) <- c("Country", "Health_Expenditure_%_of_GDP", "Year")
-
-df_complete = merge(df_health, df_complete, by = c("Country", "Year"))
-health = df_complete$`Health_Expenditure_%_of_GDP`
-allocation = df_complete$`%_of_GDP_To_Education`
+summary(reg(Education_Allocation, CorruptionCode))
+# A country whose corruption index lies above the median allocated roughly 1.2% more to their 
+# education sector than countries below the median. 
 Corruption = as.numeric(df_complete$Corruption_Index)
 
-summary(glm(health ~ Corruption))
-# As the corruption index increases by 1, health expenditure as a % of GDP, as with education
-# expenditure, increases by .0536. This is not surprising, as with greater governmental corruption
-# we can presume that there exists a greater misallocation of resources.
+cor.test(log(GDP_capita), Corruption)
+# We see that GDP per capita is strongly linearly related with a lower corruption at a
+# correlation coefficent of .7829. 
+
 ```
 
-## R Markdown
+## Productivity Analysis
 
 ```{r Effect of Productivity, warning=FALSE}
 file = "/Users/patrickpoleshuk/Downloads/DP_LIVE_09112020234158064.csv"
@@ -261,9 +232,11 @@ df_GDP_capita = WDI(country = "all", indicator = "NY.GDP.PCAP.CD",
 df = merge(df_literacy, df_primary_completion)
 df = merge(df_allocation, df)
 df = merge(df, df_GDP_capita)
-df = subset(df, select = c(year, iso3c, SE.XPD.TOTL.GD.ZS, SE.PRM.CMPT.ZS, SE.ADT.LITR.ZS, NY.GDP.PCAP.CD))
+df = subset(df, select = c(year, iso3c, SE.XPD.TOTL.GD.ZS, 
+                           SE.PRM.CMPT.ZS, SE.ADT.LITR.ZS, NY.GDP.PCAP.CD))
 
-names(df) <- c("Year", "Country_Code", "%_of_GDP_To_Education", "%_Primary_Complete", "Literacy_Rate", "GDP_Per_Capita")
+names(df) <- c("Year", "Country_Code", "%_of_GDP_To_Education", "%_Primary_Complete",
+              "Literacy_Rate", "GDP_Per_Capita")
 
 df_final = merge(df, OECD, by = c("Country_Code", "Year"))
 
@@ -291,14 +264,15 @@ summary(glm(Productivity ~ Literacy))
 # A 1% increase in Literacy Rates for the net population will increase GDP per hour worked, 
 # for the labor in that country, by 1.0423.
 
+summary(glm(Productivity ~ df_final$`%_Primary_Complete`))
+# A 1% increase in primary school completion rate increases GDP per hour worked by .0995. 
+# However, this is not signficant at the 1% level nor the 10% level. 
 
 p = df_final$Productivity
 Allo = df_final$`%_of_GDP_To_Education`
 
-plot(Allo, p, main = "Worker Productivity Alongside Education Allocation",
-     xlab = "Education Allocation as a % of GDP", ylab = "GDP per hour worked (Productivity Index)")
-abline(glm(p ~ Allo), col = "Blue")
-
+length(which(!is.na(df_final$Productivity & df_final$`%_of_GDP_To_Education`)))
+# N = 2,284
 freqData <- as.data.frame(table(Allo, p))
 names(freqData) <- c("Allo", "p", "Frequency")
 freqData$Allo <- as.numeric(as.character(freqData$Allo))
@@ -308,12 +282,15 @@ g <- g  + scale_size(range = c(1, 8), guide = "none" )
 g <- g + geom_point(color="grey50", aes(size = Frequency+20))
 g <- g + geom_point(aes(color=Frequency, size = Frequency))
 g <- g + scale_color_gradient(low = "lightblue", high="white") +
-  ggtitle("Illustrated Regression of Corruption Index on GDP") +
-  labs(x = "GDP per hour worked (Productivity Index)",
-       y = "Education Allocation as a % of GDP")
+  ggtitle("Illustrated Regression of Education Allocation on Worker Productivity") +
+  labs(x = "Education Allocation (% of GDP)",
+       y = "GDP Per Hour Worked (Productivity Index)",
+       caption = "Data Source: World Bank / OECD",
+       subtitle = "N = 2,284")
 Model_new <- glm(p ~ Allo)
-g <- g + geom_abline(intercept = coef(Model_new)[1], slope = coef(Model_new)[2], size = 3, color = "dark red")
-g
+g <- g + geom_abline(intercept = coef(Model_new)[1], slope = coef(Model_new)[2], 
+                     size = 3, color = "dark red")
+g 
 
 # Here we see the regression, stating that a greater education allocation is predicted to 
 # increase labor productivity. 
@@ -322,75 +299,31 @@ GDP = df_final$GDP_Per_Capita
 
 lnGDP = log(GDP)
 Literacy = df_final$Literacy_Rate
-m <- glm(lnGDP ~ Productivity + Literacy)
-summary(m)
-# For every 1$ increase in GDP per hour worked, GDP per capita will go up by .5213% and for every 
-# 1% increase in Literacy rates GDP per capita will increase by 6%. This may seem like an
-# exaggeration but both these coefficent of effects are S.S. at the 1% level and if we refer back 
-# to the probit model, the level of GDP per capita dispairty between corrupt and 
-# non-corrupt countries was huge.
-cor.test(lnGDP, Productivity)
-# There is a .562843 correlation coefficent, indicating that there is a moderate linear relationship
-# between higher productivity and GDP per capita. 
 
-fixed_effects = plm(lnGDP ~ Productivity + factor(Year), index = "Country_Code", data = df_final, model = "within")
+fixed_effects = plm(lnGDP ~ Productivity + factor(Year), index = "Country_Code", 
+                    data = df_final, model = "within")
 summary(fixed_effects)
 # We get a very strong r^2 value, .92907. This signifies that a variance in productivity can 
 # explain roughly 93% of the variance in GDP per capita. We also get more precise estimators, 
-# as in fixed effect models we control for lagged effects or the possibility of reverse 
-# casuality. Anyway, on the top of our factor(year) variables we get a Productivity estimator 
+# as in fixed effect models we control for lagged effects or the possibility of unobserved 
+# heterogenity. On the top of our factor(year) variables we get a Productivity estimator 
 # of .001253. For every 1$ increase in GDP per hour worked, we see a 1.253% increase in GDP 
 # per capita. This is going to be our most refined estimator. This is S.S. at the 1% level, 
-# but you will see our other fixed effect estimators will not be, and are, thus, not reliable. 
+# but you will see our other fixed effect estimator will not be, and is, thus, not reliable. 
 
-fixed_effects = plm(p ~ Allo + factor(Year), index = "Country_Code", data = df_final, model = "within")
+fixed_effects = plm(p ~ Allo + factor(Year), index = "Country_Code", 
+                    data = df_final, model = "within")
 summary(fixed_effects)
+summary(glm(p~Allo)) # A 1 increase in education allocation increases productivity by 4.6679.
 # A variance in Education Allocation explains roughly 25.48% of variance in productivity. 
 # This is not surprising, as GDP produced per hour of labor is dependent on many variables such 
-# as general company managament, access to technology, and profititability incentives. Not a bad value.
-
-df_health = WDI(country = "all", indicator = "SH.XPD.CHEX.GD.ZS", start = 1960, 
-                end = 2019, extra = TRUE)
-df_health = rename(df_health, "Health" = "SH.XPD.CHEX.GD.ZS")
-library(sqldf)
-df_health = sqldf("Select iso3c, year, Health from df_health")
-names(df_health) <- c("Country_Code", "Year", "Health_%_of_GDP")
-
-df_final = merge(df_final, df_health, by = c("Country_Code", "Year"))
-
-fixed_effects = plm(df_final$Productivity ~ df_final$`Health_%_of_GDP` + factor(Year), index = "Country_Code", data = df_final, model = "within")
-summary(fixed_effects)
-
-# Unfortunately, we found a weak r^2 value of % allocated to GDP and productivity of a country's
-# labor. Only roughly 4.74% of a variance in this variable explains a variance in productivity.
-# However, not all these coefficients for the factor of years is S.S. at the 1% level, so maybe 
-# we just lack the appropiate sample size for these years to make a truly informed interpretation. 
-
-summary(glm(df_final$Productivity ~ df_final$`Health_%_of_GDP`))
-# A 1% increase in resources (as a % of GDP) allocated towards health expenditures is predicted 
-# to increase GDP per hour worked by 3.5794. 
-cor.test(df_final$Productivity, df_final$`Health_%_of_GDP`)
-# Correlation coefficent of .2726, fairly weak. 
-
-df_health_exp_capita = WDI(country = "all", indicator = "SH.XPD.CHEX.PC.CD", start = 1960, end = 2019, extra = TRUE)
-
-df_health_exp_capita = rename(df_health_exp_capita, "HealthCapita" = "SH.XPD.CHEX.PC.CD")
-
-df_health_exp_capita = sqldf("select iso3c, HealthCapita, year from df_health_exp_capita")
-
-names(df_health_exp_capita) <- c("Country_Code", "Health_Exp_per_capita", "Year")
-
-df_final = merge(df_health_exp_capita, df_final, by = c("Country_Code", "Year"))
-
-cor.test(log(df_final$Health_Exp_per_capita), df_final$Productivity)
-
-fe = plm(df_final$Productivity ~ log(df_final$Health_Exp_per_capita) + factor(Year), index = "Country_Code", data = df_final, model = "within")
+# as general company managament, access to technology, and profititability incentives.
+fe = plm(p ~ Allo + factor(Country_Code), index = "Year", 
+                    data = df_final, model = "within")
 summary(fe)
-
-# Honestly, fairly same results as before, I tried a new data set for health and roughly the same
-# results came up. I used Health expenditures per capita instead of % of GDP allocated towards 
-# the health sector of a given country's economy. 
-summary(glm(df_final$Productivity ~ log(df_final$Health_Exp_per_capita)))
-# For every 1% increase in Health Expenditures per capita, GDP per hour worked will increase 
-# by 10.88. Extremely high, but keep in mind a 1% increase in health expenditure 
-# per capita is no small feat. 
+# Controlling for aggregate trends that vary throughout country, in another fixed-effects
+# model, 
+# we find that an increase in education allocation as a % of GDP increases GDP per hour
+# worked by 5.04463. 
+# This is statistically significant at the 1% level, however, we lack of a lot of data on individual 
+# countries to give a statistically signficant estimator for each country code category.
